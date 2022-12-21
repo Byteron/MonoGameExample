@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -65,6 +64,12 @@ public class Velocity
     public Vector2 Value;
 }
 
+public class Sprite
+{
+    public bool Centered = true;
+    public Texture2D Texture;
+}
+
 public class InitSystem : ISystem
 {
     readonly Random _random = new();
@@ -73,7 +78,7 @@ public class InitSystem : ISystem
     {
         var texture = world.LoadTexture2D("Content/icon.png");
         world.Spawn()
-            .Add(texture)
+            .Add(new Sprite { Texture = texture })
             .Add(new Position { Value = new Vector2(50, 50) })
             .Add(new Velocity { Value = new Vector2(_random.Next(-10, 10), _random.Next(-10, 10)) });
     }
@@ -89,7 +94,7 @@ public class InputSystem : ISystem
         {
             var texture = world.LoadTexture2D("Content/icon.png");
             world.Spawn()
-                .Add(texture)
+                .Add(new Sprite { Texture = texture })
                 .Add(new Position { Value = new Vector2(50, 50) })
                 .Add(new Velocity { Value = new Vector2(_random.Next(-10, 10), _random.Next(-10, 10)) });
         }
@@ -131,15 +136,19 @@ public class RenderSystem : ISystem
     {
         var device = world.GetElement<GraphicsDevice>();
         var spriteBatch = world.GetElement<SpriteBatch>();
-        var query = world.Query<Texture2D, Position>().Build();
+        var query = world.Query<Sprite, Position>().Build();
         
         device.Clear(Color.CornflowerBlue);
         
         spriteBatch.Begin();
         
-        foreach (var (tex, pos) in query)
+        foreach (var (sprite, pos) in query)
         {
-            spriteBatch.Draw(tex, pos.Value, Color.White);
+            var offset = sprite.Centered
+                ? new Vector2(sprite.Texture.Width / 2f, sprite.Texture.Width / 2f)
+                : Vector2.Zero;
+            
+            spriteBatch.Draw(sprite.Texture, pos.Value - offset, Color.White);
         }
         
         spriteBatch.End();
