@@ -77,7 +77,6 @@ public class Animation
 {
     public Texture2D[] Frames;
     public float FrameTime;
-    public int Current;
     public float Time;
 }
 
@@ -87,9 +86,8 @@ public class InitSystem : ISystem
     
     public void Run(World world)
     {
-        var texture = world.LoadTexture2D("Content/icon.png");
         world.Spawn()
-            .Add(new Sprite { Texture = texture })
+            .Add(new Sprite { Texture = world.LoadTexture2D("Content/icon.png") })
             .Add(new Position { Value = new Vector2(50, 50) })
             .Add(new Velocity { Value = new Vector2(_random.Next(-10, 10), _random.Next(-10, 10)) });
     }
@@ -103,9 +101,8 @@ public class InputSystem : ISystem
     {
         if (Keyboard.GetState().IsKeyDown(Keys.Space))
         {
-            var texture = world.LoadTexture2D("Content/icon.png");
             world.Spawn()
-                .Add(new Sprite { Texture = texture })
+                .Add(new Sprite { Texture = world.LoadTexture2D("Content/icon.png") })
                 .Add(new Animation
                 {
                     FrameTime = 0.15f,
@@ -157,7 +154,8 @@ public class MoveSystem : ISystem
     }
 }
 
-public class AnimationSystem : ISystem {
+public class AnimationSystem : ISystem
+{
     public void Run(World world)
     {
         var gameTime = world.GetElement<GameTime>();
@@ -182,6 +180,7 @@ public class AnimationSystem : ISystem {
         }
     }
 }
+
 public class RenderSystem : ISystem
 {
     public void Run(World world)
