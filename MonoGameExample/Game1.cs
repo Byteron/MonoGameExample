@@ -29,11 +29,12 @@ public class Game1 : Game
         _world.AddElement(_graphics);
         _world.AddElement(GraphicsDevice);
         _world.AddElement(new SpriteBatch(GraphicsDevice));
-        
+
         _initSystems.Add(new InitSystem());
         
-        _updateSystems.Add(new InputSystem());
-        _updateSystems.Add(new MoveSystem());
+        _updateSystems.Add(new InputSystem())
+            .Add(new AnimationSystem())
+            .Add(new MoveSystem());
         
         _renderSystems.Add(new RenderSystem());
         
@@ -44,6 +45,8 @@ public class Game1 : Game
 
     protected override void Update(GameTime gameTime)
     {
+        _world.AddOrReplaceElement(gameTime);
+        
         _updateSystems.Run(_world);
         
         base.Update(gameTime);
@@ -68,6 +71,14 @@ public class Sprite
 {
     public bool Centered = true;
     public Texture2D Texture;
+}
+
+public class Animation
+{
+    public Texture2D[] Frames;
+    public float FrameTime;
+    public int Current;
+    public float Time;
 }
 
 public class InitSystem : ISystem
@@ -95,8 +106,21 @@ public class InputSystem : ISystem
             var texture = world.LoadTexture2D("Content/icon.png");
             world.Spawn()
                 .Add(new Sprite { Texture = texture })
+                .Add(new Animation
+                {
+                    FrameTime = 0.15f,
+                    Frames = new[]
+                    {
+                        world.LoadTexture2D("Content/icon.png"),
+                        world.LoadTexture2D("Content/icon1.png"),
+                        world.LoadTexture2D("Content/icon2.png"),
+                        world.LoadTexture2D("Content/icon3.png"),
+                        world.LoadTexture2D("Content/icon2.png"),
+                        world.LoadTexture2D("Content/icon1.png"),
+                    }
+                })
                 .Add(new Position { Value = new Vector2(50, 50) })
-                .Add(new Velocity { Value = new Vector2(_random.Next(-10, 10), _random.Next(-10, 10)) });
+                .Add(new Velocity { Value = new Vector2(_random.Next(-100, 100), _random.Next(-100, 100)) });
         }
     }
 }
@@ -107,12 +131,15 @@ public class MoveSystem : ISystem
     {
         var device = world.GetElement<GraphicsDevice>();
         
+        var gameTime = world.GetElement<GameTime>();
+        var delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        
         var height = device.Viewport.Height;
         var width = device.Viewport.Width;
 
         foreach (var (pos, vel) in world.Query<Position, Velocity>().Build())
         {
-            pos.Value += vel.Value;
+            pos.Value += vel.Value * delta;
 
             if (pos.Value.X < 0 || pos.Value.X > width)
             {
@@ -130,6 +157,31 @@ public class MoveSystem : ISystem
     }
 }
 
+public class AnimationSystem : ISystem {
+    public void Run(World world)
+    {
+        var gameTime = world.GetElement<GameTime>();
+        var delta = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        
+        var query = world.Query<Sprite, Animation>().Build();
+
+        foreach (var (sprite, animation) in query)
+        {
+            animation.Time += delta;
+            var maxTime = animation.FrameTime * animation.Frames.Length;
+
+            if (animation.Time > maxTime)
+            {
+                animation.Time -= maxTime;
+            }
+            
+            var index = (int)(animation.Time / animation.FrameTime);
+            var texture = animation.Frames[index];
+
+            sprite.Texture = texture;
+        }
+    }
+}
 public class RenderSystem : ISystem
 {
     public void Run(World world)
